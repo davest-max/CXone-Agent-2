@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* shadcn base tokens — mapped to Figma palette */
+    --background: 210 33% 98%;        /* #F5F8FA */
+    --foreground: 0 0% 20%;           /* #333333 */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 207 100% 35%;          /* #005C99 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 207 33% 95%;         /* #ECF3F8 */
+    --secondary-foreground: 0 0% 20%;
+    --muted: 207 33% 95%;
+    --muted-foreground: 200 24% 40%;  /* #526b7a */
+    --accent: 207 33% 95%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 352 98% 41%;       /* #C2041A */
+    --destructive-foreground: 0 0% 100%;
+    --border: 205 17% 85%;            /* #D2D8DB */
+    --input: 205 17% 85%;
+    --ring: 207 100% 35%;
+    --radius: 0.5rem;
+
+    /* Sidebar tokens */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 0 0% 20%;
+    --sidebar-primary: 207 100% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 207 33% 95%;
+    --sidebar-accent-foreground: 207 100% 24%;  /* #003D7A */
+    --sidebar-border: 205 17% 85%;
+    --sidebar-ring: 207 100% 35%;
+    --sidebar-width: 286px;
+    --sidebar-width-icon: 52px;
+
+    /* Figma-specific custom properties */
+    --nav-header: #007CBE;
+    --nav-header-from: #007CBE;
+    --nav-header-to: #005f94;
+    --blue-450: #007AB8;
+    --blue-550: #005C99;
+    --blue-650: #003D7A;
+    --bg-50: #F5F8FA;
+    --bg-100: #ECF3F8;
+    --border-1: #D2D8DB;
+    --border-2: #EBEBEB;
+    --text-700: #333333;
+    --text-800: #191919;
+    --agent-bubble: #067EFF;
+    --customer-bubble: #E6E6E6;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 207 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 207 100% 45%;
+    --sidebar: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 207 100% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 207 100% 45%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Open Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  .animate-card-in {
+    animation: card-slide-in 0.4s ease-out both;
+  }
+}
+
+@keyframes card-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
