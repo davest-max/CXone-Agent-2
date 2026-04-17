@@ -24,7 +24,7 @@ export function AppSearchBar({
   }
 
   return (
-    <div className={cn("px-4 pb-3 pt-2 shrink-0", className)}>
+    <div className={cn("p-4 shrink-0", className)}>
       <div className="flex items-center gap-2 border border-[#D2D8DB] rounded-lg px-3 py-2 bg-white hover:border-[#005C99] focus-within:border-[#005C99] transition-colors">
         <input
           type="text"

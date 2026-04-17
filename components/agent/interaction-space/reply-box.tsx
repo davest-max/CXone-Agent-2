@@ -39,12 +39,12 @@ export function ReplyBox({ placeholder, onSend, contact, className }: ReplyBoxPr
       )}
     >
       {/* Label */}
-      <div className="px-3 pt-3 pb-1">
+      <div className="px-4 pt-4 pb-1">
         <span className="text-[11px] font-semibold text-[#526b7a]">Chat with {firstName}</span>
       </div>
 
       {/* Text area */}
-      <div className="px-3 pb-2">
+      <div className="px-4 pb-4">
         <Textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -55,7 +55,7 @@ export function ReplyBox({ placeholder, onSend, contact, className }: ReplyBoxPr
       </div>
 
       {/* Bottom action row */}
-      <div className="flex items-center gap-1 px-3 pb-3">
+      <div className="flex items-center gap-1 px-4 pb-4">
         {/* Attach button */}
         <Button variant="ghost" size="icon" title="Attach file" className="text-[#526b7a] shrink-0">
           <Paperclip />
