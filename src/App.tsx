@@ -11,6 +11,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { mockContacts, mockMessages } from "@/lib/mock-data";
+import { AgentStatusProvider } from "@/lib/agent-status-context";
 import type { Message } from "@/lib/mock-data";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -110,6 +111,7 @@ export default function App() {
   }
 
   return (
+    <AgentStatusProvider>
     <div className="flex flex-col w-full h-screen bg-[#F5F8FA] overflow-hidden">
       {/* Top navigation — full width */}
       <TopNav />
@@ -169,5 +171,6 @@ export default function App() {
         </div>
       </div>
     </div>
+    </AgentStatusProvider>
   );
 }
