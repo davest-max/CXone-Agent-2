@@ -3,9 +3,9 @@
 import { useState } from "react";
 import {
   ChartColumnBig,
-  CircleCheck,
-  Circle,
-  MinusCircle,
+  Check,
+  Dot,
+  Minus,
   PhoneIncoming,
   PhoneOutgoing,
 } from "lucide-react";
@@ -21,6 +21,11 @@ import {
 } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell } from "recharts";
+import {
+  useAgentStatus,
+  getCategory,
+  formatHMS,
+} from "@/lib/agent-status-context";
 
 const CARD = "flex flex-col h-full bg-white border border-[#D2D8DB] rounded-lg shadow-sm overflow-hidden";
 
@@ -69,12 +74,6 @@ function TimePeriodSelector({
   );
 }
 
-const PRODUCTIVITY_DATA = [
-  { name: "Available",   value: 0,   color: "#22c55e" },
-  { name: "Working",     value: 0,   color: "#f59e0b" },
-  { name: "Unavailable", value: 100, color: "#ef4444" },
-];
-
 const PRODUCTIVITY_CHART_CONFIG = {
   Available:   { label: "Available",   color: "#22c55e" },
   Working:     { label: "Working",     color: "#f59e0b" },
@@ -82,11 +81,45 @@ const PRODUCTIVITY_CHART_CONFIG = {
 };
 
 function ProductivityTab({ period, onPeriodChange }: { period: TimePeriod; onPeriodChange: (p: TimePeriod) => void }) {
+  const { status, elapsed, accumulated } = useAgentStatus();
+
+  // Live seconds per individual status code.
+  const liveCode = {
+    "available": accumulated["available"] + (status === "available" ? elapsed : 0),
+    "bio-break": accumulated["bio-break"] + (status === "bio-break" ? elapsed : 0),
+    "break":     accumulated["break"]     + (status === "break"     ? elapsed : 0),
+    "meeting":   accumulated["meeting"]   + (status === "meeting"   ? elapsed : 0),
+  };
+
+  // Category-level totals.
+  const liveSecs = {
+    available:   liveCode["available"],
+    working:     0,
+    unavailable: liveCode["bio-break"] + liveCode["break"] + liveCode["meeting"],
+  };
+
+  const total = liveSecs.available + liveSecs.working + liveSecs.unavailable || 1;
+  function pct(secs: number) { return Math.round((secs / total) * 100); }
+
+  const productivityData = [
+    { name: "Available",   value: pct(liveSecs.available),   color: "#22c55e" },
+    { name: "Working",     value: pct(liveSecs.working),     color: "#f59e0b" },
+    { name: "Unavailable", value: pct(liveSecs.unavailable), color: "#ef4444" },
+  ];
+
+  // Bar widths — proportional to the largest category.
+  const maxSecs = Math.max(liveSecs.available, liveSecs.working, liveSecs.unavailable, 1);
+  function barPct(secs: number) { return `${Math.round((secs / maxSecs) * 100)}%`; }
+
+  const availPct = pct(liveSecs.available);
+
   return (
     <div className="flex flex-col flex-1 overflow-auto">
       {/* Sub-header */}
       <div className="flex items-center justify-between px-4 py-3 shrink-0">
-        <span className="text-[14px] font-semibold text-[#333]">Productivity (0%)</span>
+        <span className="text-[14px] font-semibold text-[#333]">
+          Productivity ({availPct}%)
+        </span>
         <TimePeriodSelector period={period} onChange={onPeriodChange} />
       </div>
 
@@ -95,15 +128,15 @@ function ProductivityTab({ period, onPeriodChange }: { period: TimePeriod; onPer
         <ChartContainer config={PRODUCTIVITY_CHART_CONFIG} className="h-[120px] w-[120px] shrink-0">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-            <Pie data={PRODUCTIVITY_DATA} dataKey="value" innerRadius={36} outerRadius={54} strokeWidth={2}>
-              {PRODUCTIVITY_DATA.map((entry) => (
+            <Pie data={productivityData} dataKey="value" innerRadius={36} outerRadius={54} strokeWidth={2}>
+              {productivityData.map((entry) => (
                 <Cell key={entry.name} fill={entry.color} />
               ))}
             </Pie>
           </PieChart>
         </ChartContainer>
         <div className="flex flex-col gap-2">
-          {PRODUCTIVITY_DATA.map((entry) => (
+          {productivityData.map((entry) => (
             <div key={entry.name} className="flex items-center gap-2 text-sm">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
               <span className="text-muted-foreground">{entry.name}</span>
@@ -127,84 +160,106 @@ function ProductivityTab({ period, onPeriodChange }: { period: TimePeriod; onPer
           <TableRow>
             <TableCell>
               <div className="flex items-center gap-2 font-semibold">
-                <CircleCheck className="w-4 h-4 text-[#22c55e] shrink-0" />
-                Available (0%)
+                <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5 text-white stroke-[3]" /></div>
+                Available ({pct(liveSecs.available)}%)
               </div>
             </TableCell>
             <TableCell>
               <div className="relative h-5">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#22c55e]" />
+                {liveSecs.available > 0
+                  ? <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 bg-[#22c55e] rounded-sm transition-all" style={{ width: barPct(liveSecs.available) }} />
+                  : <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#22c55e]" />}
               </div>
             </TableCell>
-            <TableCell className="text-right font-semibold">00:00:00</TableCell>
+            <TableCell className="text-right font-semibold tabular-nums">{formatHMS(liveSecs.available)}</TableCell>
           </TableRow>
-          {/* Available — Team */}
+          {/* Available — Team (mirrors agent) */}
           <TableRow className="bg-muted/30 hover:bg-muted/40">
-            <TableCell className="pl-8 text-muted-foreground text-xs">Team (0%)</TableCell>
+            <TableCell className="pl-8 text-muted-foreground text-xs">Team ({pct(liveSecs.available)}%)</TableCell>
             <TableCell>
               <div className="relative h-4">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#86efac]" />
+                {liveSecs.available > 0
+                  ? <div className="absolute left-0 top-1/2 -translate-y-1/2 h-3 bg-[#86efac] rounded-sm transition-all" style={{ width: barPct(liveSecs.available) }} />
+                  : <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#86efac]" />}
               </div>
             </TableCell>
-            <TableCell className="text-right text-muted-foreground text-xs">00:00:00</TableCell>
+            <TableCell className="text-right text-muted-foreground text-xs tabular-nums">{formatHMS(liveSecs.available)}</TableCell>
           </TableRow>
 
           {/* Working */}
           <TableRow>
             <TableCell>
               <div className="flex items-center gap-2 font-semibold">
-                <Circle className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b] shrink-0" />
-                Working (0%)
+                <div className="w-4 h-4 rounded-full bg-orange-400 flex items-center justify-center shrink-0"><Dot className="w-4 h-4 text-white" /></div>
+                Working ({pct(liveSecs.working)}%)
               </div>
             </TableCell>
             <TableCell>
               <div className="relative h-5">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#f59e0b]" />
+                {liveSecs.working > 0
+                  ? <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 bg-[#f59e0b] rounded-sm transition-all" style={{ width: barPct(liveSecs.working) }} />
+                  : <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#f59e0b]" />}
               </div>
             </TableCell>
-            <TableCell className="text-right font-semibold">00:00:00</TableCell>
+            <TableCell className="text-right font-semibold tabular-nums">{formatHMS(liveSecs.working)}</TableCell>
           </TableRow>
           {/* Working — Team */}
           <TableRow className="bg-muted/30 hover:bg-muted/40">
-            <TableCell className="pl-8 text-muted-foreground text-xs">Team (0%)</TableCell>
+            <TableCell className="pl-8 text-muted-foreground text-xs">Team ({pct(liveSecs.working)}%)</TableCell>
             <TableCell>
               <div className="relative h-4">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#fcd34d]" />
+                {liveSecs.working > 0
+                  ? <div className="absolute left-0 top-1/2 -translate-y-1/2 h-3 bg-[#fcd34d] rounded-sm transition-all" style={{ width: barPct(liveSecs.working) }} />
+                  : <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#fcd34d]" />}
               </div>
             </TableCell>
-            <TableCell className="text-right text-muted-foreground text-xs">00:00:00</TableCell>
+            <TableCell className="text-right text-muted-foreground text-xs tabular-nums">{formatHMS(liveSecs.working)}</TableCell>
           </TableRow>
 
-          {/* Unavailable */}
+          {/* Unavailable — parent row */}
           <TableRow>
             <TableCell>
               <div className="flex items-center gap-2 font-semibold">
-                <MinusCircle className="w-4 h-4 text-[#ef4444] shrink-0" />
-                Unavailable (100%)
+                <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shrink-0"><Minus className="w-2.5 h-2.5 text-white stroke-[3]" /></div>
+                Unavailable ({pct(liveSecs.unavailable)}%)
               </div>
             </TableCell>
             <TableCell>
-              <div className="h-5 bg-[#ef4444] rounded-sm" />
-            </TableCell>
-            <TableCell className="text-right font-semibold">00:00:00</TableCell>
-          </TableRow>
-          {/* Unavailable — Unavailable sub-row */}
-          <TableRow className="bg-muted/30 hover:bg-muted/40">
-            <TableCell className="pl-8 text-muted-foreground text-xs">Unavailable</TableCell>
-            <TableCell>
-              <div className="relative h-4">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#fca5a5]" />
+              <div className="relative h-5">
+                {liveSecs.unavailable > 0
+                  ? <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 bg-[#ef4444] rounded-sm transition-all" style={{ width: barPct(liveSecs.unavailable) }} />
+                  : <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[#ef4444]" />}
               </div>
             </TableCell>
-            <TableCell className="text-right text-muted-foreground text-xs">00:00:00</TableCell>
+            <TableCell className="text-right font-semibold tabular-nums">{formatHMS(liveSecs.unavailable)}</TableCell>
           </TableRow>
+          {/* Unavailable — per-status-code sub-rows */}
+          {(["bio-break", "break", "meeting"] as const).map((code) => {
+            const secs  = liveCode[code];
+            const label = code === "bio-break" ? "Bio Break" : code === "break" ? "Break" : "Meeting";
+            return (
+              <TableRow key={code} className="bg-muted/30 hover:bg-muted/40">
+                <TableCell className="pl-8 text-muted-foreground text-xs">{label} ({pct(secs)}%)</TableCell>
+                <TableCell>
+                  <div className="relative h-4">
+                    {secs > 0
+                      ? <div className="absolute left-0 top-1/2 -translate-y-1/2 h-3 bg-[#fca5a5] rounded-sm transition-all" style={{ width: barPct(secs) }} />
+                      : <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#fca5a5]" />}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground text-xs tabular-nums">{formatHMS(secs)}</TableCell>
+              </TableRow>
+            );
+          })}
           {/* Unavailable — Team */}
           <TableRow className="bg-muted/30 hover:bg-muted/40">
-            <TableCell className="pl-8 text-muted-foreground text-xs">Team (100%)</TableCell>
+            <TableCell className="pl-8 text-muted-foreground text-xs">Team ({pct(liveSecs.unavailable)}%)</TableCell>
             <TableCell>
-              <div className="h-4 bg-[#fca5a5] rounded-sm" />
+              {liveSecs.unavailable > 0
+                ? <div className="h-4 bg-[#fca5a5] rounded-sm transition-all" style={{ width: barPct(liveSecs.unavailable) }} />
+                : <div className="relative h-4"><div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-[#fca5a5]" /></div>}
             </TableCell>
-            <TableCell className="text-right text-muted-foreground text-xs">00:00:00</TableCell>
+            <TableCell className="text-right text-muted-foreground text-xs tabular-nums">{formatHMS(liveSecs.unavailable)}</TableCell>
           </TableRow>
         </TableBody>
       </Table>

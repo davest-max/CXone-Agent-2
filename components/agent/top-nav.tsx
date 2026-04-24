@@ -1,12 +1,154 @@
-import { Bell, HelpCircle, Link2, ChevronDown, Clock } from "lucide-react";
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import { Bell, HelpCircle, Link2, Unlink2, Loader2, Search, LogOut, Check, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { agentInitials, agentStatus, agentTimer } from "@/lib/mock-data";
+import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  useAgentStatus,
+  STATUS_OPTIONS,
+  type StatusCode,
+} from "@/lib/agent-status-context";
+
+const AGENT_INITIALS = "DC";
+
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+
+function StatusBubble({ isAvailable }: { isAvailable: boolean }) {
+  return (
+    <span
+      className={cn(
+        "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
+        isAvailable ? "bg-green-500" : "bg-red-500"
+      )}
+    >
+      {isAvailable
+        ? <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+        : <Minus className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+    </span>
+  );
+}
+
+/* ─── Status dropdown ────────────────────────────────────────────────────── */
+
+function StatusDropdown({
+  isAvailable,
+  onSelect,
+  onGoAvailable,
+}: {
+  isAvailable: boolean;
+  onSelect: (id: StatusCode) => void;
+  onGoAvailable: () => void;
+}) {
+  const [query, setQuery] = useState("");
+
+  const filtered = STATUS_OPTIONS.filter((o) =>
+    o.label.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div className="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-2xl border border-[#D2D8DB] z-[100] overflow-hidden">
+      {/* Go Available — only shown when not already available */}
+      {!isAvailable && (
+        <div className="px-3 pt-3 pb-2">
+          <Button variant="outline" className="w-full" onClick={onGoAvailable}>
+            <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+              <Check className="w-3 h-3 text-white" strokeWidth={3} />
+            </span>
+            Go Available
+          </Button>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className={cn("px-3 pb-2", isAvailable && "pt-3")}>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search agent status"
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      {/* Status list */}
+      <div className="pb-1">
+        <p className="px-3 py-1 text-xs text-muted-foreground">
+          All Codes ({filtered.length})
+        </p>
+        {filtered.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => onSelect(opt.id)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted transition-colors text-left text-sm"
+          >
+            <StatusBubble isAvailable={opt.isAvailable} />
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Log out */}
+      <div className="border-t border-[#D2D8DB]">
+        <button className="w-full flex items-center justify-center gap-2 py-2 text-sm text-foreground hover:bg-muted transition-colors">
+          <LogOut className="w-4 h-4 text-muted-foreground" />
+          Log Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Top Nav ────────────────────────────────────────────────────────────── */
 
 interface TopNavProps {
   className?: string;
 }
 
 export function TopNav({ className }: TopNavProps) {
+  const { status, setStatus, elapsed }  = useAgentStatus();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [legConnected, setLegConnected]   = useState(false);
+  const [legConnecting, setLegConnecting] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isAvailable   = status === "available";
+  const currentOption = STATUS_OPTIONS.find((o) => o.id === status);
+
+  const handleSelect = useCallback((id: StatusCode) => {
+    setStatus(id);
+    setDropdownOpen(false);
+  }, [setStatus]);
+
+  // Hover in / out with a small grace window so moving into the dropdown
+  // doesn't immediately close it.
+  function handleMouseEnter() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setDropdownOpen(true);
+  }
+
+  function handleMouseLeave() {
+    closeTimer.current = setTimeout(() => setDropdownOpen(false), 120);
+  }
+
   return (
     <header
       className={cn(
@@ -18,65 +160,131 @@ export function TopNav({ className }: TopNavProps) {
       {/* Left: App branding */}
       <div className="flex items-center gap-2 shrink-0">
         <AppIcon />
-        <span className="text-white font-semibold text-base tracking-wide">
-          Agent
-        </span>
+        <span className="text-white font-semibold text-base tracking-wide">Agent</span>
       </div>
 
-      {/* Center: CXone Mpower branding — absolute so it centers against the full nav width */}
+      {/* Center: CXone Mpower branding */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
         <CXoneBranding />
       </div>
 
       {/* Right: controls */}
+      <TooltipProvider delayDuration={400}>
       <div className="flex items-center gap-1 shrink-0">
         {/* Help */}
-        <button className="p-2 rounded hover:bg-white/10 text-white transition-colors">
-          <HelpCircle className="w-5 h-5" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="p-2 rounded hover:bg-white/10 text-white transition-colors">
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Open help center in new window</TooltipContent>
+        </Tooltip>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-white/30 mx-1" />
 
         {/* Notifications */}
-        <button className="relative p-2 rounded hover:bg-white/10 text-white transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-[var(--nav-header)]" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="relative p-2 rounded hover:bg-white/10 text-white transition-colors">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-[var(--nav-header)]" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Notifications</TooltipContent>
+        </Tooltip>
 
-        {/* Agent Leg connection — link icon */}
-        <button className="p-2 rounded hover:bg-white/10 text-white transition-colors">
-          <Link2 className="w-5 h-5" />
-        </button>
+        {/* Agent Leg */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              disabled={legConnecting}
+              onClick={() => {
+                if (legConnected) {
+                  // Disconnect immediately
+                  setLegConnected(false);
+                } else {
+                  // Show 500ms connecting animation then flip to connected
+                  setLegConnecting(true);
+                  setTimeout(() => {
+                    setLegConnecting(false);
+                    setLegConnected(true);
+                    toast.success("Agent leg connected");
+                  }, 1000);
+                }
+              }}
+              className="p-2 rounded hover:bg-white/10 text-white transition-colors disabled:pointer-events-none"
+            >
+              {legConnecting
+                ? <Loader2 className="w-5 h-5 animate-spin" />
+                : legConnected
+                  ? <Link2   className="w-5 h-5" />
+                  : <Unlink2 className="w-5 h-5" />}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-center leading-snug">
+            {legConnecting ? (
+              "Connecting…"
+            ) : legConnected ? (
+              <><span>Agent leg connected.</span><br /><span>Click to disconnect.</span></>
+            ) : (
+              <><span>Agent leg disconnected.</span><br /><span>Click to connect.</span></>
+            )}
+          </TooltipContent>
+        </Tooltip>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-white/30 mx-1" />
 
-        {/* Agent status */}
-        <button className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/10 transition-colors">
-          <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-              <span className="text-sm font-semibold text-[var(--nav-header)] leading-none">
-                {agentInitials}
+        {/* ── Agent status trigger + dropdown ── */}
+        <div
+          className="relative"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {/* Trigger — always avatar + badge + status label + timer */}
+          <div className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer select-none hover:bg-white/10 transition-colors">
+            <div className="relative">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0">
+                <span className="text-sm font-semibold text-[var(--nav-header)] leading-none">
+                  {AGENT_INITIALS}
+                </span>
+              </div>
+              {/* Status badge — green check when available, red minus otherwise */}
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--nav-header)] flex items-center justify-center",
+                  isAvailable ? "bg-green-500" : "bg-red-500"
+                )}
+              >
+                {isAvailable
+                  ? <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                  : <Minus className="w-2 h-2 text-white" strokeWidth={3} />}
               </span>
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-amber-500 rounded-full border-2 border-[var(--nav-header)]" />
-          </div>
-          <div className="flex flex-col items-start leading-tight">
-            <div className="flex items-center gap-0.5">
-              <span className="text-white text-xs font-semibold">{agentStatus}</span>
-              <ChevronDown className="w-3 h-3 text-white/80" />
-            </div>
-            <div className="flex items-center gap-1 text-white/70 text-xs">
-              <Clock className="w-3 h-3" />
-              <span>({agentTimer})</span>
+            <div className="flex flex-col items-start leading-tight">
+              <span className="text-white text-xs font-semibold">
+                {currentOption?.label ?? "Unavailable"}
+              </span>
+              <span className="text-white/70 text-xs">({formatTime(elapsed)})</span>
             </div>
           </div>
-        </button>
+
+          {/* Dropdown panel — visible on hover */}
+          {dropdownOpen && (
+            <StatusDropdown
+              isAvailable={isAvailable}
+              onSelect={handleSelect}
+              onGoAvailable={() => handleSelect("available")}
+            />
+          )}
+        </div>
       </div>
+      </TooltipProvider>
     </header>
   );
 }
+
+/* ─── Static sub-components ─────────────────────────────────────────────── */
 
 function AppIcon() {
   return (
@@ -98,24 +306,19 @@ function AppIcon() {
       <path d="M18.25 11.5167L17.25 13.2156C16.0411 12.5223 15.034 11.5376 14.325 10.3556L16.0625 9.37778L15.25 6.44444H11.9C11.8158 6.44438 11.7324 6.46096 11.6549 6.49318C11.5774 6.52541 11.5074 6.57263 11.449 6.63199C11.3906 6.69135 11.3451 6.76163 11.3152 6.83862C11.2853 6.91561 11.2716 6.99771 11.275 7.08C11.4277 9.45157 12.4585 11.6876 14.1747 13.3701C15.8909 15.0527 18.1749 16.0665 20.6 16.2222C20.6842 16.2255 20.7681 16.2121 20.8469 16.1829C20.9256 16.1537 20.9975 16.1092 21.0582 16.0521C21.1189 15.995 21.1672 15.9265 21.2001 15.8508C21.2331 15.775 21.2501 15.6935 21.25 15.6111V12.3111L18.25 11.5167Z" fill="#525252"/>
       <defs>
         <linearGradient id="agent_paint0" x1="23.75" y1="17.2733" x2="23.75" y2="31.0233" gradientUnits="userSpaceOnUse">
-          <stop/>
-          <stop offset="1" stopOpacity="0.25"/>
+          <stop/><stop offset="1" stopOpacity="0.25"/>
         </linearGradient>
         <linearGradient id="agent_paint1" x1="17.4625" y1="24.7411" x2="26.077" y2="33.5514" gradientUnits="userSpaceOnUse">
-          <stop/>
-          <stop offset="1" stopOpacity="0.25"/>
+          <stop/><stop offset="1" stopOpacity="0.25"/>
         </linearGradient>
         <linearGradient id="agent_paint2" x1="23.9" y1="24.9244" x2="32.0379" y2="33.2473" gradientUnits="userSpaceOnUse">
-          <stop/>
-          <stop offset="1" stopOpacity="0.25"/>
+          <stop/><stop offset="1" stopOpacity="0.25"/>
         </linearGradient>
         <linearGradient id="agent_paint3" x1="30.0375" y1="24.8144" x2="35.1329" y2="30.0256" gradientUnits="userSpaceOnUse">
-          <stop/>
-          <stop offset="1" stopOpacity="0.25"/>
+          <stop/><stop offset="1" stopOpacity="0.25"/>
         </linearGradient>
         <linearGradient id="agent_paint4" x1="13.475" y1="8.60778" x2="24.9488" y2="20.3423" gradientUnits="userSpaceOnUse">
-          <stop/>
-          <stop offset="1" stopOpacity="0.25"/>
+          <stop/><stop offset="1" stopOpacity="0.25"/>
         </linearGradient>
       </defs>
     </svg>

@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Menu, History, Search, LayoutList, BookUser, Ellipsis, Atom, Contact, CalendarDays } from "lucide-react";
 import { AIPanel } from "./ai-panel";
 import { AppSearchBar } from "./search-bar";
-import { QueuePanel } from "./queue-panel";
+import { SearchPage }    from "@/components/agent/pages/search-page";
+import { QueuePage }     from "@/components/agent/pages/queue-page";
+import { DirectoryPage } from "@/components/agent/pages/directory-page";
+import { SchedulePage }  from "@/components/agent/pages/schedule-page";
 import {
   Tooltip,
   TooltipContent,
@@ -12,12 +15,18 @@ import {
 import { cn } from "@/lib/utils";
 import type { Contact as ContactType } from "@/lib/mock-data";
 
+// className applied to every embedded page — strips the page's own card
+// border/shadow/rounded so the App Space card shell is the only frame.
+const EMBEDDED = "h-full border-0 shadow-none rounded-none";
+
+export type AppTab = "copilot" | "customer" | "history" | "search" | "queue" | "directory" | "schedule" | "more";
+
 interface AppSpaceProps {
   contact: ContactType;
+  activeTab?: AppTab;
+  onTabChange?: (tab: AppTab) => void;
   className?: string;
 }
-
-type AppTab = "copilot" | "customer" | "history" | "search" | "queue" | "directory" | "schedule" | "more";
 
 type TabItem =
   | { type: "tab"; id: AppTab; icon: React.ElementType; label: string }
@@ -35,9 +44,15 @@ const appTabs: TabItem[] = [
   { type: "tab", id: "more",      icon: Ellipsis,     label: "More" },
 ];
 
-export function AppSpace({ contact, className }: AppSpaceProps) {
-  const [activeTab, setActiveTab] = useState<AppTab>("copilot");
+export function AppSpace({ contact, activeTab: controlledTab, onTabChange, className }: AppSpaceProps) {
+  const [internalTab, setInternalTab] = useState<AppTab>("copilot");
+  const activeTab = controlledTab ?? internalTab;
   const [queries, setQueries] = useState<string[]>([]);
+
+  function setActiveTab(tab: AppTab) {
+    setInternalTab(tab);
+    onTabChange?.(tab);
+  }
 
   function handleCopilotQuery(query: string) {
     setQueries((prev) => [...prev, query]);
@@ -95,19 +110,24 @@ export function AppSpace({ contact, className }: AppSpaceProps) {
         </div>
       </TooltipProvider>
 
-      {/* Tab content — grows to fill */}
-      <div className="flex-1 overflow-hidden">
+      {/* Tab content — grows to fill, pages embedded without their card shell */}
+      <div className="flex-1 overflow-hidden min-h-0">
         {activeTab === "copilot" && (
-          <AIPanel
-            contact={contact}
-            queries={queries}
-            className="h-full"
-          />
+          <AIPanel contact={contact} queries={queries} className="h-full" />
+        )}
+        {activeTab === "search" && (
+          <SearchPage className={EMBEDDED} />
         )}
         {activeTab === "queue" && (
-          <QueuePanel className="h-full" />
+          <QueuePage className={EMBEDDED} />
         )}
-        {activeTab !== "copilot" && activeTab !== "queue" && (
+        {activeTab === "directory" && (
+          <DirectoryPage className={EMBEDDED} />
+        )}
+        {activeTab === "schedule" && (
+          <SchedulePage className={EMBEDDED} />
+        )}
+        {(activeTab === "customer" || activeTab === "history" || activeTab === "more") && (
           <div className="flex items-center justify-center h-full text-[12px] text-[#526b7a]">
             {appTabs.find((t): t is Extract<TabItem, { type: "tab" }> => t.type === "tab" && t.id === activeTab)?.label} — coming soon
           </div>

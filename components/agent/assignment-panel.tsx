@@ -8,6 +8,7 @@ interface AssignmentPanelProps {
   contacts: Contact[];
   activeContactId: string | null;
   onContactSelect: (id: string) => void;
+  onTransfer?: () => void;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export function AssignmentPanel({
   contacts,
   activeContactId,
   onContactSelect,
+  onTransfer,
   className,
 }: AssignmentPanelProps) {
   return (
@@ -42,12 +44,13 @@ export function AssignmentPanel({
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-1.5 p-1.5">
-          {contacts.map((contact) => (
+          {[...contacts].sort((a, b) => (a.channel === "phone" ? -1 : b.channel === "phone" ? 1 : 0)).map((contact) => (
             <ContactTile
               key={contact.id}
               contact={contact}
               isActive={contact.id === activeContactId}
               onClick={() => onContactSelect(contact.id)}
+              onTransfer={contact.channel === "phone" ? onTransfer : undefined}
             />
           ))}
         </div>

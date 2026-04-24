@@ -5,6 +5,7 @@ import { AgentSidebarRail } from "@/components/agent/sidebar-rail";
 import { AssignmentPanel } from "@/components/agent/assignment-panel";
 import { InteractionSpace } from "@/components/agent/interaction-space";
 import { AppSpace } from "@/components/agent/app-space";
+import type { AppTab } from "@/components/agent/app-space";
 import { NavRouter } from "@/components/agent/pages";
 import {
   ResizablePanelGroup,
@@ -17,6 +18,7 @@ import type { Message } from "@/lib/mock-data";
 export default function AgentPage() {
   const [activeContactId, setActiveContactId] = useState("sarah-mitchell");
   const [activeNavId, setActiveNavId] = useState<string | null>(null);
+  const [appSpaceTab, setAppSpaceTab] = useState<AppTab>("copilot");
   const [messages, setMessages] = useState<Record<string, Message[]>>(mockMessages);
 
   function handleContactSelect(id: string) {
@@ -65,6 +67,7 @@ export default function AgentPage() {
             contacts={mockContacts}
             activeContactId={activeContactId}
             onContactSelect={handleContactSelect}
+            onTransfer={() => { setActiveNavId(null); setAppSpaceTab("directory"); }}
             className="h-full"
           />
         </div>
@@ -90,7 +93,12 @@ export default function AgentPage() {
               <ResizableHandle withHandle className="bg-transparent w-2 mx-0" />
 
               <ResizablePanel defaultSize={38} minSize={25}>
-                <AppSpace contact={activeContact} className="h-full" />
+                <AppSpace
+                  contact={activeContact}
+                  activeTab={appSpaceTab}
+                  onTabChange={setAppSpaceTab}
+                  className="h-full"
+                />
               </ResizablePanel>
             </ResizablePanelGroup>
           )}

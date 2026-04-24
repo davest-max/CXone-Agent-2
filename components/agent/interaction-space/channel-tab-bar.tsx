@@ -1,7 +1,8 @@
 
-import { MessageCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/mock-data";
+import { ChannelIcon } from "@/components/agent/contact-tile";
 
 interface ChannelTabBarProps {
   contact: Contact;
@@ -15,6 +16,7 @@ const channelLabels: Record<string, string> = {
   facebook: "Facebook",
   twitter: "Twitter",
   sms: "SMS",
+  whatsapp: "WhatsApp",
 };
 
 export function ChannelTabBar({ contact, className }: ChannelTabBarProps) {
@@ -27,7 +29,7 @@ export function ChannelTabBar({ contact, className }: ChannelTabBarProps) {
     >
       {/* Active channel tab — styled as a browser tab */}
       <div className="relative flex items-center gap-1.5 px-2 pt-1 pb-px bg-white border border-[#D2D8DB] border-b-white rounded-t-lg -mb-px min-w-0 max-w-[140px]">
-        <MessageCircle className="w-4 h-4 text-[#005C99] shrink-0" />
+        <ChannelIcon channel={contact.channel} className="shrink-0" />
         <span className="text-[13px] text-black truncate">
           {channelLabels[contact.channel] ?? contact.channel}
         </span>

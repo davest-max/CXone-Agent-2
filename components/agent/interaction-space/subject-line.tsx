@@ -12,17 +12,23 @@ export function SubjectLine({ contact, className }: SubjectLineProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-3 h-7 border-b border-[#D2D8DB] bg-white shrink-0",
+        "flex items-center justify-between px-3 h-8 border-b border-[#D2D8DB] bg-white shrink-0",
         className
       )}
     >
-      {/* Left: message count, case number, status */}
-      <div className="flex items-center gap-2 text-[12px]">
-        <span className="font-semibold text-[#333]">
-          5 private messages
-        </span>
-        <span className="text-[#333]">|</span>
-        <span className="font-bold text-[#333] uppercase tracking-wide">
+      {/* Left: subject (email) or message count, plus case number and status */}
+      <div className="flex items-center gap-2 text-[12px] min-w-0 overflow-hidden">
+        {contact.channel === "email" && contact.emailSubject ? (
+          <span className="font-bold text-[#333] truncate max-w-[220px]">
+            {contact.emailSubject}
+          </span>
+        ) : (
+          <span className="font-semibold text-[#333] shrink-0">
+            5 private messages
+          </span>
+        )}
+        <span className="text-[#333] shrink-0">|</span>
+        <span className="font-bold text-[#333] uppercase tracking-wide shrink-0">
           # {contact.caseNumber}
         </span>
         <span className="text-[#333]">|</span>

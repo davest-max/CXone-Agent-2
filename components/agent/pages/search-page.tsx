@@ -30,7 +30,16 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableRow,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 
 const CARD = "flex flex-col h-full bg-white border border-[#D2D8DB] rounded-lg shadow-sm overflow-hidden";
 
@@ -45,7 +54,7 @@ const TABS: { id: SearchTab; label: string }[] = [
 
 const COLUMNS = ["TYPE", "CREATE DATE", "STATUS", "CHANNEL", "SKILL"];
 
-const SUGGESTIONS = [
+const INTERACTIONS_SUGGESTIONS = [
   "ownerAssignee IS",
   "inboxAssignee IS",
   "ownerAssignee=",
@@ -73,6 +82,15 @@ const SUGGESTIONS = [
   "skillId IS",
   "skillId IN",
   "skillId NOT IN",
+];
+
+const MESSAGES_SUGGESTIONS = [
+  "content=",
+  "messageDirection=",
+  "ipAddress=",
+  "threadIdOnExternalPlatform=",
+  "AND",
+  "OR",
 ];
 
 /* ─── Date Picker Input ──────────────────────────────────────────────────── */
@@ -329,13 +347,201 @@ function FilterPanel() {
   );
 }
 
+/* ─── Messages Filter Panel ─────────────────────────────────────────────── */
+const MESSAGES_FILTER_OPTIONS = {
+  channel:    FILTER_OPTIONS.channel,
+  readStatus: [{ value: "read", label: "Read" }, { value: "unread", label: "Unread" }],
+};
+
+function MessagesFilterPanel() {
+  const [channel, setChannel]       = useState<string[]>([]);
+  const [readStatus, setReadStatus] = useState<string[]>([]);
+  const [author, setAuthor]         = useState("");
+  const [startDate, setStartDate]   = useState<Date | undefined>();
+  const [endDate, setEndDate]       = useState<Date | undefined>();
+  const [open, setOpen]             = useState(false);
+
+  function handleClear() {
+    setChannel([]); setReadStatus([]); setAuthor("");
+    setStartDate(undefined); setEndDate(undefined);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline">
+          <ListFilter className="w-4 h-4" />
+          Filters
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="end" sideOffset={6} className="w-80 p-0 gap-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#D2D8DB]">
+          <span className="text-[14px] font-semibold text-[#005C99]">Filter Options</span>
+          <button onClick={() => setOpen(false)} className="text-[#526b7a] hover:text-[#333] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex flex-col gap-4 px-4 py-4 overflow-y-auto max-h-[70vh]">
+          <div>
+            <p className={FIELD_LABEL}>Create Date Range</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-[12px] text-[#526b7a] mb-1">Start Date</p>
+                <DatePickerInput value={startDate} onChange={setStartDate} />
+              </div>
+              <div>
+                <p className="text-[12px] text-[#526b7a] mb-1">End Date</p>
+                <DatePickerInput value={endDate} onChange={setEndDate} />
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className={FIELD_LABEL}>Read Status</p>
+            <MultiCombobox options={MESSAGES_FILTER_OPTIONS.readStatus} selected={readStatus} onSelectedChange={setReadStatus} />
+          </div>
+          <div>
+            <p className={FIELD_LABEL}>Channel</p>
+            <MultiCombobox options={MESSAGES_FILTER_OPTIONS.channel} selected={channel} onSelectedChange={setChannel} />
+          </div>
+          <div>
+            <p className={FIELD_LABEL}>Author</p>
+            <Input
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Filter by author…"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[#D2D8DB]">
+          <Button variant="outline" onClick={handleClear}>Clear</Button>
+          <Button onClick={() => setOpen(false)}>Apply</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ─── Customers Filter Panel ─────────────────────────────────────────────── */
+function CustomersFilterPanel() {
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate]     = useState<Date | undefined>();
+  const [open, setOpen]           = useState(false);
+
+  function handleClear() {
+    setStartDate(undefined); setEndDate(undefined);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline">
+          <ListFilter className="w-4 h-4" />
+          Filters
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="end" sideOffset={6} className="w-80 p-0 gap-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#D2D8DB]">
+          <span className="text-[14px] font-semibold text-[#005C99]">Filter Options</span>
+          <button onClick={() => setOpen(false)} className="text-[#526b7a] hover:text-[#333] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex flex-col gap-4 px-4 py-4 overflow-y-auto max-h-[70vh]">
+          <div>
+            <p className={FIELD_LABEL}>Last Activity</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-[12px] text-[#526b7a] mb-1">Start Date</p>
+                <DatePickerInput value={startDate} onChange={setStartDate} />
+              </div>
+              <div>
+                <p className="text-[12px] text-[#526b7a] mb-1">End Date</p>
+                <DatePickerInput value={endDate} onChange={setEndDate} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[#D2D8DB]">
+          <Button variant="outline" onClick={handleClear}>Clear</Button>
+          <Button onClick={() => setOpen(false)}>Apply</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ─── Threads Filter Panel ───────────────────────────────────────────────── */
+function ThreadsFilterPanel() {
+  const [channel, setChannel]           = useState<string[]>([]);
+  const [customerName, setCustomerName] = useState("");
+  const [startDate, setStartDate]       = useState<Date | undefined>();
+  const [endDate, setEndDate]           = useState<Date | undefined>();
+  const [open, setOpen]                 = useState(false);
+
+  function handleClear() {
+    setChannel([]); setCustomerName("");
+    setStartDate(undefined); setEndDate(undefined);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline">
+          <ListFilter className="w-4 h-4" />
+          Filters
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="end" sideOffset={6} className="w-80 p-0 gap-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#D2D8DB]">
+          <span className="text-[14px] font-semibold text-[#005C99]">Filter Options</span>
+          <button onClick={() => setOpen(false)} className="text-[#526b7a] hover:text-[#333] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex flex-col gap-4 px-4 py-4 overflow-y-auto max-h-[70vh]">
+          <div>
+            <p className={FIELD_LABEL}>Create Date Range</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-[12px] text-[#526b7a] mb-1">Start Date</p>
+                <DatePickerInput value={startDate} onChange={setStartDate} />
+              </div>
+              <div>
+                <p className="text-[12px] text-[#526b7a] mb-1">End Date</p>
+                <DatePickerInput value={endDate} onChange={setEndDate} />
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className={FIELD_LABEL}>Channel</p>
+            <MultiCombobox options={FILTER_OPTIONS.channel} selected={channel} onSelectedChange={setChannel} />
+          </div>
+          <div>
+            <p className={FIELD_LABEL}>Customer Name</p>
+            <Input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Filter by customer name…"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[#D2D8DB]">
+          <Button variant="outline" onClick={handleClear}>Clear</Button>
+          <Button onClick={() => setOpen(false)}>Apply</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /* ─── Query Builder ──────────────────────────────────────────────────────── */
 interface QueryBuilderProps {
   chips: string[];
   onChipsChange: (chips: string[]) => void;
+  suggestions?: string[];
 }
 
-function QueryBuilder({ chips, onChipsChange }: QueryBuilderProps) {
+function QueryBuilder({ chips, onChipsChange, suggestions = INTERACTIONS_SUGGESTIONS }: QueryBuilderProps) {
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = useState(false);
   const [highlightedIdx, setHighlightedIdx] = useState(0);
@@ -343,10 +549,10 @@ function QueryBuilder({ chips, onChipsChange }: QueryBuilderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = inputValue.trim()
-    ? SUGGESTIONS.filter((s) =>
+    ? suggestions.filter((s) =>
         s.toLowerCase().includes(inputValue.toLowerCase())
       )
-    : SUGGESTIONS;
+    : suggestions;
 
   // Reset highlight when filtered list changes
   useEffect(() => { setHighlightedIdx(0); }, [inputValue]);
@@ -475,10 +681,58 @@ function QueryBuilder({ chips, onChipsChange }: QueryBuilderProps) {
   );
 }
 
+/* ─── Tab config ──────────────────────────────────────────────────────────── */
+interface ColDef { label: string; sort?: boolean; className?: string }
+
+const TAB_CONFIG: Record<SearchTab, { columns: ColDef[]; showColumns: boolean }> = {
+  interactions: {
+    showColumns: true,
+    columns: [
+      { label: "TYPE",        className: "w-32" },
+      { label: "CREATE DATE", className: "w-40", sort: true },
+      { label: "STATUS",      className: "w-32" },
+      { label: "CHANNEL",     className: "w-32" },
+      { label: "SKILL",       className: "flex-1" },
+    ],
+  },
+  messages: {
+    showColumns: true,
+    columns: [
+      { label: "CASE ID",     className: "w-40" },
+      { label: "CREATE DATE", className: "w-40", sort: true },
+      { label: "READ STATUS", className: "w-36" },
+      { label: "CHANNEL",     className: "w-36" },
+      { label: "AUTHOR",      className: "flex-1" },
+    ],
+  },
+  customers: {
+    showColumns: false,
+    columns: [
+      { label: "CUSTOMER NAME",  className: "flex-1" },
+      { label: "LAST ACTIVITY",  className: "w-48", sort: true },
+      { label: "INBOUND",        className: "w-32" },
+      { label: "OUTBOUND",       className: "w-32" },
+    ],
+  },
+  threads: {
+    showColumns: true,
+    columns: [
+      { label: "CREATE DATE",    className: "w-40" },
+      { label: "CHANNEL",        className: "w-36" },
+      { label: "CUSTOMER NAME",  className: "flex-1" },
+      { label: "INTERACTIONS",   className: "w-36" },
+      { label: "MESSAGES",       className: "w-32" },
+    ],
+  },
+};
+
 /* ─── Search Page ─────────────────────────────────────────────────────────── */
 export function SearchPage({ className }: { className?: string }) {
   const [activeTab, setActiveTab] = useState<SearchTab>("interactions");
   const [chips, setChips] = useState<string[]>(["ownerAssignee IS"]);
+  const [messageChips, setMessageChips] = useState<string[]>([]);
+
+  const { columns, showColumns } = TAB_CONFIG[activeTab];
 
   return (
     <div className={cn(CARD, className)}>
@@ -499,9 +753,7 @@ export function SearchPage({ className }: { className?: string }) {
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 "relative px-4 py-2.5 text-[13px] font-medium transition-colors",
-                isActive
-                  ? "text-[#005C99]"
-                  : "text-[#526b7a] hover:text-[#333]"
+                isActive ? "text-[#005C99]" : "text-[#526b7a] hover:text-[#333]"
               )}
             >
               {tab.label}
@@ -513,18 +765,33 @@ export function SearchPage({ className }: { className?: string }) {
         })}
       </div>
 
-      {/* ── Filter / query-builder row ────────────────────────────── */}
+      {/* ── Search + action bar ──────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-[#D2D8DB] shrink-0 bg-[#F5F8FA]">
-        <QueryBuilder chips={chips} onChipsChange={setChips} />
-
-        {/* Filters panel */}
-        <FilterPanel />
-
-        {/* Columns button */}
-        <Button variant="outline">
-          <Columns3 className="w-4 h-4" />
-          Columns
-        </Button>
+        {activeTab === "interactions" && (
+          <QueryBuilder chips={chips} onChipsChange={setChips} />
+        )}
+        {activeTab === "messages" && (
+          <QueryBuilder chips={messageChips} onChipsChange={setMessageChips} suggestions={MESSAGES_SUGGESTIONS} />
+        )}
+        {(activeTab === "customers" || activeTab === "threads") && (
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              placeholder="Search"
+              className="w-full h-9 rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+            />
+          </div>
+        )}
+        {activeTab === "interactions" && <FilterPanel />}
+        {activeTab === "messages"     && <MessagesFilterPanel />}
+        {activeTab === "customers"    && <CustomersFilterPanel />}
+        {activeTab === "threads"      && <ThreadsFilterPanel />}
+        {showColumns && (
+          <Button variant="outline">
+            <Columns3 className="w-4 h-4" />
+            Columns
+          </Button>
+        )}
       </div>
 
       {/* ── Action row ───────────────────────────────────────────── */}
@@ -534,7 +801,10 @@ export function SearchPage({ className }: { className?: string }) {
           Refresh
         </button>
         <button
-          onClick={() => setChips([])}
+          onClick={() => {
+            if (activeTab === "interactions") setChips([]);
+            else if (activeTab === "messages") setMessageChips([]);
+          }}
           className="flex items-center gap-1.5 text-[12px] text-[#005C99] hover:text-[#003D7A] transition-colors px-2 py-1 rounded hover:bg-[#ECF3F8]"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -542,28 +812,43 @@ export function SearchPage({ className }: { className?: string }) {
         </button>
       </div>
 
-      {/* ── Table header ─────────────────────────────────────────── */}
-      <div className="flex items-center border-b border-[#D2D8DB] bg-white shrink-0 px-4">
-        <div className="w-8 shrink-0 py-2.5">
-          <input type="checkbox" className="w-3.5 h-3.5 accent-[#005C99]" />
-        </div>
-        {COLUMNS.map((col) => (
-          <div
-            key={col}
-            className={cn(
-              "py-2.5 text-[11px] font-semibold text-[#526b7a] uppercase tracking-wide flex items-center gap-1 select-none",
-              col === "SKILL" ? "flex-1" : "w-32 shrink-0"
-            )}
-          >
-            {col}
-            {col === "CREATE DATE" && <ChevronDown className="w-3 h-3" />}
-          </div>
-        ))}
-      </div>
-
-      {/* ── Table body / empty state ──────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-[13px] text-[#526b7a]">No results found</p>
+      {/* ── Table ────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-white hover:bg-white border-b border-[#D2D8DB]">
+              {activeTab === "interactions" && (
+                <TableHead className="w-10 py-2.5">
+                  <input type="checkbox" className="w-3.5 h-3.5 accent-[#005C99]" />
+                </TableHead>
+              )}
+              {columns.map((col) => (
+                <TableHead
+                  key={col.label}
+                  className={cn(
+                    "py-2.5 text-[11px] font-semibold text-[#526b7a] uppercase tracking-wide",
+                    col.className
+                  )}
+                >
+                  <span className="flex items-center gap-1">
+                    {col.label}
+                    {col.sort && <ChevronDown className="w-3 h-3" />}
+                  </span>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="hover:bg-transparent border-0">
+              <TableCell
+                colSpan={columns.length + (activeTab === "interactions" ? 1 : 0)}
+                className="h-64 text-center text-[13px] text-[#526b7a]"
+              >
+                No results found
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       {/* ── Pagination footer ─────────────────────────────────────── */}

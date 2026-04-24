@@ -10,7 +10,7 @@ import {
   Users,
   MinusCircle,
   CheckCircle2,
-  Circle,
+  CircleDot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -86,24 +86,26 @@ const PREVIEW_COUNT = 3;
 
 /* ─── Sub-components ─────────────────────────────────────────────────────────── */
 
-function StatusIndicator({ status }: { status: AgentStatus }) {
-  if (status === "available")
-    return <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />;
-  if (status === "busy")
-    return <Circle className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400 shrink-0" />;
-  if (status === "unavailable")
-    return <MinusCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />;
-  return <MinusCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />;
-}
+const STATUS_CONFIG: Record<AgentStatus, {
+  label: string;
+  icon: React.ElementType;
+  className: string;
+  variant: "outline" | "secondary";
+}> = {
+  available:    { label: "Available",   icon: CheckCircle2, variant: "outline",   className: "border-green-500  bg-green-500  text-white" },
+  busy:         { label: "On Call",     icon: CircleDot,    variant: "outline",   className: "border-orange-400 bg-orange-400 text-white" },
+  unavailable:  { label: "Unavailable", icon: MinusCircle,  variant: "outline",   className: "border-red-500    bg-red-500    text-white" },
+  "logged-out": { label: "Logged Out",  icon: MinusCircle,  variant: "secondary", className: "" },
+};
 
-function StatusLabel({ status }: { status: AgentStatus }) {
-  const map: Record<AgentStatus, string> = {
-    available: "Available",
-    busy: "On Call",
-    unavailable: "Unavailable",
-    "logged-out": "Logged Out",
-  };
-  return <span className="text-xs text-muted-foreground">{map[status]}</span>;
+function StatusBadge({ status }: { status: AgentStatus }) {
+  const { label, icon: Icon, variant, className } = STATUS_CONFIG[status];
+  return (
+    <Badge variant={variant} className={cn("gap-1 px-1.5 py-0 text-[11px] font-medium", className)}>
+      <Icon className="w-3 h-3 shrink-0" />
+      {label}
+    </Badge>
+  );
 }
 
 function StarButton({ starred, onToggle }: { starred: boolean; onToggle: () => void }) {
@@ -117,10 +119,9 @@ function StarButton({ starred, onToggle }: { starred: boolean; onToggle: () => v
   );
 }
 
-function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }) {
+function SectionHeader({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2 py-2">
-      {icon}
       <span className="text-sm font-semibold text-foreground">{title}</span>
     </div>
   );
@@ -224,10 +225,7 @@ export function DirectoryPage({ className }: { className?: string }) {
         {/* Agents */}
         {showAgents && visibleAgents.length > 0 && (
           <div className="mb-2">
-            <SectionHeader
-              title={isDynamic ? "Dynamic people" : "Agents"}
-              icon={<UserCircle2 className="w-4 h-4 text-[#005C99]" />}
-            />
+            <SectionHeader title={isDynamic ? "Dynamic people" : "Agents"} />
             <div className="flex flex-col divide-y divide-border">
               {visibleAgents.slice(0, agentLimit).map((agent) => (
                 <div key={agent.id} className="flex items-center justify-between py-2.5 hover:bg-muted/30 -mx-2 px-2 rounded transition-colors">
@@ -237,10 +235,7 @@ export function DirectoryPage({ className }: { className?: string }) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>
-                      <div className="flex items-center gap-1">
-                        <StatusIndicator status={agent.status} />
-                        <StatusLabel status={agent.status} />
-                      </div>
+                      <StatusBadge status={agent.status} />
                     </div>
                   </div>
                   <StarButton starred={starred.has(agent.id)} onToggle={() => toggleStar(agent.id)} />
@@ -256,26 +251,38 @@ export function DirectoryPage({ className }: { className?: string }) {
         {/* Skills */}
         {showSkills && visibleSkills.length > 0 && (
           <div className="mb-2">
-            <SectionHeader
-              title="Skills"
-              icon={<Wrench className="w-4 h-4 text-[#005C99]" />}
-            />
+            <SectionHeader title="Skills" />
             <div className="flex flex-col divide-y divide-border">
               {visibleSkills.slice(0, skillLimit).map((skill) => (
                 <div key={skill.id} className="flex items-center justify-between py-2.5 hover:bg-muted/30 -mx-2 px-2 rounded transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate mb-1">{skill.name}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={skill.available ? "secondary" : "destructive"}>
-                        {skill.available ? <CheckCircle2 /> : <MinusCircle />}
-                        {skill.available ? "Available" : "Unavailable"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Queue: <span className="font-medium text-foreground">{skill.queue}</span>
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Wait: <span className="font-medium text-foreground">{skill.waitMin} min</span>
-                      </span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-[#ECF3F8] flex items-center justify-center shrink-0">
+                      <Wrench className="w-4 h-4 text-[#005C99]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate mb-1">{skill.name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "gap-1 px-1.5 py-0 text-[11px] font-medium text-white",
+                            skill.available
+                              ? "border-green-500 bg-green-500"
+                              : "border-red-500 bg-red-500"
+                          )}
+                        >
+                          {skill.available
+                            ? <CheckCircle2 className="w-3 h-3 shrink-0" />
+                            : <MinusCircle  className="w-3 h-3 shrink-0" />}
+                          {skill.available ? "Available" : "Unavailable"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Queue: <span className="font-medium text-foreground">{skill.queue}</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Wait: <span className="font-medium text-foreground">{skill.waitMin} min</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <StarButton starred={starred.has(skill.id)} onToggle={() => toggleStar(skill.id)} />
@@ -291,10 +298,7 @@ export function DirectoryPage({ className }: { className?: string }) {
         {/* Teams */}
         {showTeams && visibleTeams.length > 0 && (
           <div className="mb-2">
-            <SectionHeader
-              title="Teams"
-              icon={<Users className="w-4 h-4 text-[#005C99]" />}
-            />
+            <SectionHeader title="Teams" />
             <div className="flex flex-col divide-y divide-border">
               {visibleTeams.slice(0, teamLimit).map((team) => (
                 <div key={team.id} className="flex items-center justify-between py-2.5 hover:bg-muted/30 -mx-2 px-2 rounded transition-colors">

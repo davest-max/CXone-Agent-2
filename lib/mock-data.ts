@@ -1,4 +1,4 @@
-export type Channel = "webchat" | "phone" | "email" | "facebook" | "sms" | "twitter";
+export type Channel = "webchat" | "phone" | "email" | "facebook" | "sms" | "twitter" | "whatsapp";
 export type ContactStatus = "active" | "waiting" | "hold";
 
 export interface ContactBadge {
@@ -29,9 +29,21 @@ export interface Contact {
   unread: boolean;
   caseNumber: string;
   profile: CustomerProfile;
+  /** Phone number displayed on the active phone-call tile (phone channel only) */
+  phoneNumber?: string;
+  /** Email subject line (email channel only) */
+  emailSubject?: string;
+  /** Customer's email address (email channel only) */
+  contactEmail?: string;
 }
 
 export type MessageRole = "agent" | "customer";
+
+export interface EmailAttachment {
+  name: string;
+  size: string;
+  type: "image" | "pdf" | "file";
+}
 
 export interface Message {
   id: string;
@@ -39,9 +51,37 @@ export interface Message {
   role: MessageRole;
   text: string;
   timestamp: string;
+  /** Attachments (email channel only) */
+  attachments?: EmailAttachment[];
 }
 
 export const mockContacts: Contact[] = [
+  {
+    id: "james-harrington",
+    name: "James Harrington",
+    queue: "BAC OB Phone",
+    channel: "phone",
+    duration: "3 min",
+    phoneNumber: "253-895-8956",
+    status: "active",
+    unread: false,
+    caseNumber: "22073582",
+    profile: {
+      initials: "JH",
+      accountType: "Personal Banking",
+      tenureYears: 4,
+      balance: "$12,800.00",
+      fraudRiskScore: 22,
+      priorDisputes: 0,
+      cardBlocked: false,
+      badges: [
+        { label: "Premier", type: "default" },
+        { label: "IVR Auth ✓", type: "green" },
+      ],
+      contextSummary:
+        "4-year Premier client calling about a recent transaction inquiry. IVR authentication passed. Sentiment: Calm and straightforward.",
+    },
+  },
   {
     id: "sarah-mitchell",
     name: "Sarah Mitchell",
@@ -65,6 +105,54 @@ export const mockContacts: Contact[] = [
       ],
       contextSummary:
         "3-year Premier client. Card currently blocked due to suspected fraudulent charges. Two prior disputes on record. Sentiment: Worried and seeking reassurance.",
+    },
+  },
+  {
+    id: "alex-chen",
+    name: "Alex Chen",
+    queue: "Social Support",
+    channel: "twitter",
+    duration: "8 min",
+    status: "waiting",
+    unread: true,
+    caseNumber: "22073583",
+    profile: {
+      initials: "AC",
+      accountType: "Personal Banking",
+      tenureYears: 1,
+      balance: "$2,340.00",
+      fraudRiskScore: 45,
+      priorDisputes: 0,
+      cardBlocked: false,
+      badges: [
+        { label: "Standard", type: "default" },
+      ],
+      contextSummary:
+        "New client (1 year) reaching out via Twitter/X about a delayed transfer. First contact via social channel. Sentiment: Frustrated but polite.",
+    },
+  },
+  {
+    id: "fatima-al-hassan",
+    name: "Fatima Al-Hassan",
+    queue: "Customer Support",
+    channel: "whatsapp",
+    duration: "12 min",
+    status: "waiting",
+    unread: true,
+    caseNumber: "22073584",
+    profile: {
+      initials: "FA",
+      accountType: "Personal Banking",
+      tenureYears: 2,
+      balance: "$5,670.25",
+      fraudRiskScore: 18,
+      priorDisputes: 1,
+      cardBlocked: false,
+      badges: [
+        { label: "Standard", type: "default" },
+      ],
+      contextSummary:
+        "2-year client messaging via WhatsApp about a recurring subscription charge. One prior dispute resolved in her favor. Sentiment: Concerned but cooperative.",
     },
   },
   {
@@ -100,6 +188,8 @@ export const mockContacts: Contact[] = [
     status: "waiting",
     unread: false,
     caseNumber: "22073581",
+    emailSubject: "Account Upgrade Inquiry — Enterprise Plan Options",
+    contactEmail: "peter.brier@techcorp.com",
     profile: {
       initials: "PB",
       accountType: "Business Banking",
@@ -119,6 +209,54 @@ export const mockContacts: Contact[] = [
 ];
 
 export const mockMessages: Record<string, Message[]> = {
+  "james-harrington": [
+    {
+      id: "m1",
+      sender: "James Harrington",
+      role: "customer",
+      text: "Hi, I just noticed a charge on my account from yesterday that I don't recognize. Can you help me look into it?",
+      timestamp: "10:15 AM",
+    },
+    {
+      id: "m2",
+      sender: "Agent Smith",
+      role: "agent",
+      text: "Hi James, I'll pull up your account now. Can you confirm the last four digits of your card?",
+      timestamp: "10:16 AM",
+    },
+  ],
+  "alex-chen": [
+    {
+      id: "m1",
+      sender: "Alex Chen",
+      role: "customer",
+      text: "Hey @BankSupport — I sent a transfer 3 days ago and it still hasn't arrived. This is really frustrating.",
+      timestamp: "9:52 AM",
+    },
+    {
+      id: "m2",
+      sender: "Agent Smith",
+      role: "agent",
+      text: "Hi Alex, sorry to hear that! I'm looking into your transfer now. Can you DM me your account number or case reference?",
+      timestamp: "9:54 AM",
+    },
+  ],
+  "fatima-al-hassan": [
+    {
+      id: "m1",
+      sender: "Fatima Al-Hassan",
+      role: "customer",
+      text: "Hello, I keep getting charged $14.99 every month for a service I cancelled 2 months ago. Can you help?",
+      timestamp: "10:01 AM",
+    },
+    {
+      id: "m2",
+      sender: "Agent Smith",
+      role: "agent",
+      text: "Hi Fatima! I can see the recurring charge on your account. Let me pull up the details and get this resolved for you.",
+      timestamp: "10:02 AM",
+    },
+  ],
   "sarah-mitchell": [
     {
       id: "m1",
@@ -212,15 +350,26 @@ export const mockMessages: Record<string, Message[]> = {
       id: "m1",
       sender: "Peter Brier",
       role: "customer",
-      text: "Hello, I'm interested in upgrading my plan.",
-      timestamp: "8:30 AM",
+      text: "Hello,\n\nI've been a Business Banking client for 7 years and would like to explore upgrading to an Enterprise plan. We process roughly 500 transactions per month and need higher transfer limits, advanced reporting, and multi-user access with role-based permissions for a team of 12.\n\nCould you please send me details on available options and pricing?\n\nBest regards,\nPeter Brier\nDirector of Finance, TechCorp",
+      timestamp: "Mon, July 25 8:30 AM (2 days ago)",
+      attachments: [
+        { name: "current-plan-summary.pdf", size: "214 KB", type: "pdf" },
+        { name: "team-structure.png", size: "88 KB", type: "image" },
+      ],
     },
     {
       id: "m2",
       sender: "Agent Smith",
       role: "agent",
-      text: "Hi Peter! Great to hear from you. Let me pull up your account details.",
-      timestamp: "8:32 AM",
+      text: "Dear Peter,\n\nThank you for reaching out and for your continued loyalty as a 7-year client. I'd be happy to walk you through our Enterprise plan options.\n\nBased on your requirements — 500+ monthly transactions, high transfer limits, multi-user access, and advanced reporting — our Business Enterprise tier would be an excellent fit. I'm attaching a detailed feature comparison and pricing sheet for your review.\n\nWould you be available for a 30-minute call this week to discuss further?\n\nBest regards,\nCustomer Service",
+      timestamp: "Mon, July 25 10:13 AM (2 days ago)",
+    },
+    {
+      id: "m3",
+      sender: "Peter Brier",
+      role: "customer",
+      text: "Hi,\n\nThank you for the quick response and the comparison sheet — very helpful. Thursday at 2 PM works well for a call. Please send over a calendar invite.\n\nOne follow-up question: is there a migration path from our current plan that avoids service interruption? We can't afford any downtime during month-end processing.\n\nLooking forward to the conversation.\n\nBest,\nPeter Brier",
+      timestamp: "Mon, July 26 9:19 AM (Yesterday)",
     },
   ],
 };

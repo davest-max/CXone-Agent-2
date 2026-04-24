@@ -1074,7 +1074,7 @@ export function SettingsPage({ className }: { className?: string }) {
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-end gap-0 px-2 border-b border-[#D2D8DB] shrink-0 overflow-x-auto">
+      <div className="flex items-end gap-0 px-4 border-b border-[#D2D8DB] shrink-0 overflow-x-auto">
         {SETTING_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
