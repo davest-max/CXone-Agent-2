@@ -96,7 +96,7 @@ export function AgentSidebarRail({ activeNavId, onNavSelect }: AgentSidebarRailP
   return (
     <TooltipProvider delayDuration={300}>
       {/* Single top-aligned column — Settings/Reporting/More flow directly below WEM */}
-      <div className="flex flex-col pt-2 px-1.5 gap-0">
+      <div className="flex flex-col items-center pt-2 px-1.5 gap-0">
         {/* Customizable nav items */}
         {visibleItems.map((item) => (
           <RailItem

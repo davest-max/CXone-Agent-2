@@ -125,7 +125,7 @@ export default function App() {
         </div>
 
         {/* Assignment panel — fixed 232px */}
-        <div className="w-[232px] shrink-0 overflow-hidden py-4 pl-4">
+        <div className="w-[232px] shrink-0 overflow-hidden py-4">
           <AssignmentPanel
             contacts={mockContacts}
             activeContactId={activeContactId}
